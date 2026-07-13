@@ -4,11 +4,15 @@
 #include "sys/socket.h"
 #include "netinet/in.h"
 #include "unistd.h"
+#include "signal.h"
 
 #include "common.c"
 
 int main()
 {
+  struct sigaction ignore = {};
+  ignore.sa_handler       = SIG_IGN;
+  sigaction(SIGPIPE, &ignore, 0);
   int fd = socket(AF_INET, SOCK_STREAM, 0);
   // this is needed for most server applications
   int val = 1;

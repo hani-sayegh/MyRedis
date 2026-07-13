@@ -5,10 +5,17 @@ int write_full(int fd, void *data, int bytes)
   while (n && gd)
   {
     int err = write(fd, data, bytes);
-    if (err == -1)
+    if (err <= 0)
     {
       gd = 0;
-      perror(__FILE__);
+      if (err == 0)
+      {
+        printf("EOF");
+      }
+      else
+      {
+        perror(__FILE__);
+      }
     }
     else
     {
@@ -26,10 +33,17 @@ int read_full(int fd, void *dest, int bytes)
   while (n && gd)
   {
     int err = read(fd, dest, bytes);
-    if (err == -1)
+    if (err <= 0)
     {
       gd = 0;
-      perror(__FILE__);
+      if (err == 0)
+      {
+        printf("EOF");
+      }
+      else
+      {
+        perror(__FILE__);
+      }
     }
     else
     {
