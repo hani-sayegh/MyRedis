@@ -1,8 +1,11 @@
 #include "stdio.h"
 #include "string.h"
+#include "errno.h"
 #include "sys/socket.h"
 #include "netinet/in.h"
 #include "unistd.h"
+
+#include "common.c"
 
 int main()
 {
@@ -44,40 +47,20 @@ int main()
           socklen_t addrlen              = sizeof(client_info);
 
           int fd_client = accept(fd, (struct sockaddr *)&client_info, &addrlen);
+          printf("[%d] has connected\n", fd_client);
           if (fd_client == -1)
           {
             perror(__FILE__);
           }
           else
           {
-            char buf[64]   = {};
-            int read_bytes = sizeof(buf) - 1;
-            int n          = 1;
-            printf("%d\n", read_bytes);
-            n = read(fd_client, buf, read_bytes);
-            if (n == -1)
-            {
-              perror(__FILE__);
-            }
-            else
-            {
-              read_bytes -= n;
-            }
-
-            printf("FROM CLIENT: %s\n", buf);
+            process_payload(fd_client);
             char message_to_client[] = "The server sent you message!\n";
-            int err =
-                write(fd_client, message_to_client, strlen(message_to_client));
-            if (err == -1)
-            {
-              perror(__FILE__);
-            }
-            else
-            {
-              printf("responded to client\n");
-            }
+            send_payload(fd_client, message_to_client,
+                         strlen(message_to_client));
           }
           close(fd_client);
+          printf("[%d] has disconnected\n", fd_client);
         }
       }
     }

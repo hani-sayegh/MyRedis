@@ -5,6 +5,8 @@
 #include "unistd.h"
 #include "errno.h"
 
+#include "common.c"
+
 int main()
 {
   int fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -27,29 +29,13 @@ int main()
     }
     else
     {
-      int repeat = 2;
+      int repeat = 1;
       while (repeat--)
       {
-        char msg[] = "Message from client";
-        int err    = write(fd, msg, strlen(msg));
-        if (err == -1)
-        {
-          perror(__FILE__);
-        }
-        else
-        {
-          char rbuf[1000] = {};
-          int err         = read(fd, rbuf, sizeof(rbuf) - 1);
-	  printf("[%d] bytes read\n", err);
-          if (err == -1)
-          {
-            perror(__FILE__);
-          }
-          else
-          {
-            printf("SERVER: %s", rbuf);
-          }
-        }
+
+        char hi[] = "hello";
+        send_payload(fd, hi, strlen(hi));
+        process_payload(fd);
       }
     }
   }
