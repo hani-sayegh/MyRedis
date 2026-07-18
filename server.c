@@ -5,15 +5,24 @@
 #include "netinet/in.h"
 #include "unistd.h"
 #include "signal.h"
+#include "poll.h"
 
 #include "common.c"
+#define MAX_BUFF 1024 * 10
+
+
+typedef struct
+{
+  struct pollfd start [1024];
+  int n;
+} ArrayInt;
 
 int main()
 {
   struct sigaction ignore = {};
   ignore.sa_handler       = SIG_IGN;
   sigaction(SIGPIPE, &ignore, 0);
-  int fd = socket(AF_INET, SOCK_STREAM, 0);
+  int fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
   // this is needed for most server applications
   int val = 1;
   setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val));
@@ -45,26 +54,68 @@ int main()
       else
       {
         printf("Server waiting for connections\n");
+
+        ArrayInt all_socket           = {};
+        int n                           = all_socket.n;
+        all_socket.start[n].fd     = fd;
+        all_socket.start[n].events = POLLIN;
+        ++all_socket.n;
+
         while (1)
         {
-          struct sockaddr_in client_info = {};
-          socklen_t addrlen              = sizeof(client_info);
+          printf("Waiting for poll\n");
 
-          int fd_client = accept(fd, (struct sockaddr *)&client_info, &addrlen);
-          printf("[%d] has connected\n", fd_client);
-          if (fd_client == -1)
+       //int poll(struct pollfd *fds, nfds_t nfds, int timeout);
+          err = poll(all_socket.start, all_socket.n, -1);
+          if (err == -1)
           {
             perror(__FILE__);
           }
           else
           {
-            process_payload(fd_client);
-            char message_to_client[] = "The server sent you message!\n";
-            send_payload(fd_client, message_to_client,
-                         strlen(message_to_client));
+            int n_tracking = all_socket.n;
+            for (int idx_fd = 0; idx_fd < n_tracking; ++idx_fd)
+            {
+              int revents = all_socket.start[idx_fd].revents;
+              int fd_curr = all_socket.start[idx_fd].fd;
+              if (revents)
+              {
+                if (idx_fd == 0)
+                {
+                  struct sockaddr_in client_addr = {};
+                  socklen_t addrlen              = sizeof(client_addr);
+
+                  int fd_client = accept(
+                      fd_curr, (struct sockaddr *)&client_addr, &addrlen);
+                  if (fd_client == -1)
+                  {
+                    perror(__FILE__);
+                  }
+                  else
+                  {
+                    uint32_t ip = client_addr.sin_addr.s_addr;
+                    fprintf(stderr, "[%d]  from %u.%u.%u.%u:%u\n", fd_client,
+                            ip & 255, (ip >> 8) & 255, (ip >> 16) & 255,
+                            ip >> 24, ntohs(client_addr.sin_port));
+
+                    int n                           = all_socket.n;
+                    all_socket.start[n].fd     = fd_client;
+                    all_socket.start[n].events = POLLIN;
+                    ++all_socket.n;
+                  }
+                }
+                else
+                {
+                  process_payload(fd_curr);
+                  // char message_to_client[] = "The server sent you
+                  // message!\n"; send_payload(fd_curr, message_to_client,
+                  //              strlen(message_to_client));
+                  // close(fd_curr);
+                  printf("[%d] has disconnected\n", fd_curr);
+                }
+              }
+            }
           }
-          close(fd_client);
-          printf("[%d] has disconnected\n", fd_client);
         }
       }
     }

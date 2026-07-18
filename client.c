@@ -7,52 +7,51 @@
 
 #include "common.c"
 
-#define SOCK_COUNT 10
+#define SOCK_COUNT 1000
 
 int main()
 {
   int all_sockets[SOCK_COUNT] = {};
 
-  int gd = 1;
-  for (int i = 0; i < SOCK_COUNT; ++i)
+  int i = 0;
+  for (; i < SOCK_COUNT; ++i)
   {
-    all_sockets[i] = socket(AF_INET, SOCK_STREAM, 0);
+    all_sockets[i] = socket(AF_INET, SOCK_STREAM , 0);
     if (all_sockets[i] == -1)
     {
-      gd = 0;
       perror(__FILE__);
+      break;
     }
   }
 
-  if (gd)
+  if (i == SOCK_COUNT)
   {
     struct sockaddr_in add = {};
     add.sin_family         = AF_INET;
     add.sin_port           = htons(1234);
     add.sin_addr.s_addr    = htonl(INADDR_LOOPBACK);
 
-    for (int i = 0; i < SOCK_COUNT; ++i)
+    for (i = 0; i < SOCK_COUNT; ++i)
     {
-      gd = connect(all_sockets[i], (const struct sockaddr *)&add,
-                   sizeof(struct sockaddr_in));
+      int err = connect(all_sockets[i], (const struct sockaddr *)&add,
+                        sizeof(struct sockaddr_in));
 
-      if (gd == -1)
+      if (err == -1)
       {
         perror(__FILE__);
+        break;
       }
     }
 
-    // else
-    // {
-    //   int repeat = 1;
-    //   while (repeat--)
-    //   {
-    //
-    //     char hi[] = "hello";
-    //     send_payload(fd, hi, strlen(hi));
-    //     process_payload(fd);
-    //   }
-    // }
+    if (i == SOCK_COUNT)
+    {
+      for (i = 0; i < SOCK_COUNT; ++i)
+      {
+        char hi[] = "hello";
+        send_payload(all_sockets[i], hi, strlen(hi));
+        process_payload(all_sockets[i]);
+      }
+    }
   }
 
   for (int i = 0; i < SOCK_COUNT; ++i)
