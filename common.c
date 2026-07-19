@@ -1,82 +1,44 @@
-int write_full(int fd, void *data, int bytes)
+#include <stdlib.h>
+typedef struct
 {
-  int n  = bytes;
-  int gd = 1;
-  while (n && gd)
-  {
-    int err = write(fd, data, bytes);
-    if (err <= 0)
+int n_bytes;
+int fd;
+uint8_t *data;
+} State;
+
+void write_partial(State * state)
+{
+    int bytes_written = write(state->fd, state->data, state->n_bytes);
+    if (bytes_written == 0)
     {
-      gd = 0;
-      if (err == 0)
-      {
         printf("EOF");
-      }
-      else
-      {
+    }
+    else if(bytes_written == -1)
+    {
+
         perror(__FILE__);
-      }
     }
     else
     {
-      n -= err;
-      printf("[%d / %d] bytes sent\n", err, bytes);
+      printf("[%d / %d] bytes sent\n", bytes_written, state->n_bytes);
+      state->n_bytes -= bytes_written;
     }
-  }
-  return gd;
 }
 
-int read_full(int fd, void *dest, int bytes)
+void read_partial(State *state)
 {
-  int n  = bytes;
-  int gd = 1;
-  while (n && gd)
-  {
-    int err = read(fd, dest, bytes);
-    if (err <= 0)
+    int bytes_read = read(state->fd, state->data, state->n_bytes);
+    if(bytes_read == 0)
     {
-      gd = 0;
-      if (err == 0)
-      {
         printf("EOF");
-      }
-      else
-      {
+    }
+    if (bytes_read == -1)
+    {
         perror(__FILE__);
-      }
     }
     else
     {
-      n -= err;
-      printf("[%d / %d] bytes read\n", err, bytes);
+      printf("[%d / %d] bytes read\n", bytes_read, state->n_bytes);
+      state->n_bytes -= bytes_read;
     }
-  }
-  return gd;
-}
-
-void process_payload(int fd)
-{
-  int msg_len = 0;
-  int gd      = read_full(fd, &msg_len, sizeof(msg_len));
-  if (gd)
-  {
-    char msg[1000] = {};
-    gd             = read_full(fd, &msg, msg_len);
-    if (gd)
-    {
-      printf("Message: %s\n", msg);
-    }
-    else
-    {
-    }
-  }
-  else
-  {
-  }
-}
-
-void send_payload(int fd, char *msg, int byte)
-{
-  write_full(fd, &byte, sizeof(byte));
-  write_full(fd, msg, byte);
 }
