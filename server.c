@@ -21,7 +21,7 @@ typedef struct
   //     short revents;    /* returned events */
   // };
   struct pollfd start [MAX_CONN];
-  State all_state[MAX_CONN];
+  State state[MAX_CONN];
   int n;
 } ArrayInt;
 
@@ -74,7 +74,7 @@ int main()
 
 	while (1)
 	{
-	  printf("Waiting for poll\n");
+	  printf("polling...\n");
 
 	  //int poll(struct pollfd *fds, nfds_t nfds, int timeout);
 	  err = poll(all_socket.start, all_socket.n, -1);
@@ -108,33 +108,30 @@ int main()
 			ip & 255, (ip >> 8) & 255, (ip >> 16) & 255,
 			ip >> 24, ntohs(client_addr.sin_port));
 
-
 		    all_socket.start[n].fd     = fd_client;
 		    all_socket.start[n].events = POLLIN;
-		    all_socket.all_state[n].fd = fd_client;
-		    all_socket.all_state[n].n_bytes = 4;
-		    all_socket.all_state[n].data = calloc(1024, 1);
+
+		    all_socket.state[n].fd     = fd_client;
+		    all_socket.state[n].n_bytes = 4;
+		    all_socket.state[n].n_bytes_processed = 0;
+		    all_socket.state[n].error = 0;
+		    all_socket.state[n].data = malloc(all_socket.state[n].n_bytes);
 
 		    ++all_socket.n;
 		  }
 		}
 		else
 		{
-		  // process_payload(fd_curr);
-		  // char message_to_client[] = "The server sent you
-		  // message!\n"; send_payload(fd_curr, message_to_client,
-		  //              strlen(message_to_client));
-		  // close(fd_curr);
-
-		  read_partial(&all_socket.all_state[idx_socket]);
-
-		  if(all_socket.all_state[idx_socket].n_bytes == 0)
+		  // mark handle client state
+		  State * s = all_socket.state + idx_socket;
+		  read_partial(s);
+		  if(s->n_bytes_processed == s->n_bytes)
 		  {
+		    s->n_bytes = (int)s->data[0];
+		    s->n_bytes_processed = 0;
+		    free(s->data);
+		    s->data = malloc(s->n_bytes);
 		  }
-
-		  printf("Read %d\n", *all_socket.all_state[idx_socket].data);
-
-
 		}
 	      }
 	    }
@@ -142,16 +139,16 @@ int main()
 	    // clean up
 	    for(int idx_fd = 1; idx_fd < all_socket.n; ++idx_fd)
 	    {
-	      if(all_socket.all_state[idx_fd].n_bytes == 0)
+	      if(all_socket.state[idx_fd].error)
 	      {
-		int fd = all_socket.all_state[idx_fd].fd;
+		int fd = all_socket.state[idx_fd].fd;
 		printf("[%d] removed\n", fd);
 		if(close(fd) == -1)
 		{
 		  perror(__FILE__);
 		}
 		--all_socket.n;
-		all_socket.all_state[idx_fd] = all_socket.all_state[all_socket.n];
+		all_socket.state[idx_fd] = all_socket.state[all_socket.n];
 	      }
 	    }
 	  }

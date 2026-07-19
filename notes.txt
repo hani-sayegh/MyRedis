@@ -1,3 +1,7 @@
 formatting
 fix buffer jump
 vim: cib, highligh {}
+
+1.make client wait for response before terminating connection
+2. handle state on server, reading msg len, reading msg etc.
+

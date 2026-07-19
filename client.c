@@ -9,6 +9,20 @@
 
 #define N_CLIENT 1
 
+void write_all(State * s)
+{
+  while(s->n_bytes)
+  {
+    int written = write(s->fd, s->data, s->n_bytes);
+    if(written <= 0)
+    {
+      perror("terminate");
+      exit(written);
+    }
+    s->n_bytes -= written;
+  }
+}
+
 int main()
 {
   int all_sockets[N_CLIENT] = {};
@@ -60,13 +74,14 @@ int main()
 	State s = {};
 	s.fd = all_sockets[i];
 	char data [] = "hello my name is Hani";
-	s.n_bytes = sizeof(s.n_bytes) + sizeof(data);
-	s.data = calloc(s.n_bytes, 1);
+	int n_data = sizeof(data) - 1;
+	s.n_bytes = sizeof(int) + n_data;
+	s.data = malloc(s.n_bytes);
 
-	memcpy(s.data, &s.n_bytes, sizeof(s.n_bytes));
-	memcpy(s.data + 4, data, sizeof(data));
+	memcpy(s.data, &n_data, sizeof(n_data));
+	memcpy(s.data + 4, data, n_data);
 
-	write_partial(&s);
+	write_all(&s);
 	// process_payload(all_sockets[i]);
       }
     }
