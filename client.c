@@ -7,17 +7,17 @@
 
 #include "common.c"
 
-#define N_CLIENT 1
+#define N_CLIENT 100
 
 int main()
 {
-  int all_sockets[N_CLIENT] = {};
+  State all_states[N_CLIENT] = {};
 
   int i = 0;
   for (; i < N_CLIENT; ++i)
   {
-    all_sockets[i] = socket(AF_INET, SOCK_STREAM , 0);
-    if (all_sockets[i] == -1)
+    all_states[i].fd = socket(AF_INET, SOCK_STREAM , 0);
+    if (all_states[i].fd == -1)
     {
       perror(__FILE__);
       break;
@@ -33,7 +33,7 @@ int main()
 
     for (i = 0; i < N_CLIENT; ++i)
     {
-      int err = connect(all_sockets[i], (const struct sockaddr *)&add,
+      int err = connect(all_states[i].fd, (const struct sockaddr *)&add,
 	  sizeof(struct sockaddr_in));
 
       if (err == -1)
@@ -57,31 +57,37 @@ int main()
     {
       for (i = 0; i < N_CLIENT; ++i)
       {
-	State s = {};
-	s.fd = all_sockets[i];
+	State * s = all_states + i;
 	char data [] = "hello my name is Hani";
 	int n_data = sizeof(data) - 1;
-	s.n_bytes = sizeof(int) + n_data;
-	s.data = malloc(s.n_bytes);
+	s->n_bytes = sizeof(int) + n_data;
+	s->data = malloc(s->n_bytes);
 
-	memcpy(s.data, &n_data, sizeof(n_data));
-	memcpy(s.data + 4, data, n_data);
+	memcpy(s->data, &n_data, sizeof(n_data));
+	memcpy(s->data + 4, data, n_data);
+	set_state_writing(s);
+      }
 
-	s.request = Send;
-	do_partial_io(&s);
-	s.request = MsgLen;
-	do_partial_io(&s);
-	s.request = Msg;
-	do_partial_io(&s);
-
-	printf("Awesomeeeee....: %s\n", s.data);
+      int done = 0;
+      while(done != N_CLIENT)
+      {
+	for(int i = 0; i < N_CLIENT; ++i)
+	{
+	  State * s = all_states + i;
+	  do_partial_io(s);
+	  if(try_to_transition(s) == Send)
+	  {
+	    printf("Awesomeeeee....: %s\n", s->data);
+	    ++done;
+	  }
+	}
       }
     }
   }
 
   for (int i = 0; i < N_CLIENT; ++i)
   {
-    close(all_sockets[i]);
+    close(all_states[i].fd);
   }
   return 0;
 }

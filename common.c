@@ -9,6 +9,7 @@ enum IO
 
 enum RequestState
 {
+  None,
   MsgLen,
   Msg,
   Send,
@@ -29,6 +30,46 @@ typedef struct
   uint8_t *data;
   enum RequestState request;
 } State;
+
+void set_state_reading(State * s)
+{
+  s->request = MsgLen;
+  s->n_bytes = 4;
+  s->n_bytes_processed = 0;
+  s->data = malloc(s->n_bytes);
+}
+
+void set_state_writing(State * s)
+{
+  s->request = Send;
+  s->n_bytes_processed = 0;
+}
+
+enum RequestState try_to_transition(State * s)
+{
+  enum RequestState state = None;
+  // when to free?
+  if(s->n_bytes_processed == s->n_bytes)
+  {
+    if(s->request == MsgLen)
+    {
+      s->request = Msg;
+      s->n_bytes = (int)s->data[0];
+      s->n_bytes_processed = 0;
+      s->data = malloc(s->n_bytes);
+    }
+    else if(s->request == Msg)
+    {
+      set_state_writing(s);
+    }
+    else if(s->request == Send)
+    {
+      set_state_reading(s);
+    }
+    state = s->request;
+  }
+  return state;
+}
 
 
 void do_partial_io(State *state)

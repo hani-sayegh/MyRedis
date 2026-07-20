@@ -112,10 +112,8 @@ int main()
 		    all_socket.start[n].events = POLLIN;
 
 		    all_socket.state[n].fd     = fd_client;
-		    all_socket.state[n].n_bytes = 4;
-		    all_socket.state[n].n_bytes_processed = 0;
-		    all_socket.state[n].error = 0;
-		    all_socket.state[n].data = malloc(all_socket.state[n].n_bytes);
+		    all_socket.state[n].error     = 0;
+		    set_state_reading(&all_socket.state[n]);
 
 		    ++all_socket.n;
 		  }
@@ -124,29 +122,22 @@ int main()
 		{
 		  // mark handle client state
 		  State * s = all_socket.state + idx_socket;
+		  struct pollfd* poll_stuff = all_socket.start + idx_socket;
 		  do_partial_io(s);
-
-		  if(s->n_bytes_processed == s->n_bytes)
+		  if(try_to_transition(s) == Send)
 		  {
-		    if(s->request == MsgLen)
-		    {
-		      s->request = Msg;
-		      s->n_bytes = (int)s->data[0];
-		      s->n_bytes_processed = 0;
-		      free(s->data);
-		      s->data = malloc(s->n_bytes);
-		    }
-		    else if(s->request == Msg)
-		    {
-		      s->request = Send;
-		      char msg [] = "Hello from Hani's server!!";
-		      s->n_bytes = sizeof(msg) - 1;
-		      s->n_bytes_processed = 0;
-		      free(s->data);
-		      s->data = malloc(s->n_bytes);
-		      memcpy(s->data, msg, s->n_bytes);
-		      s->request = MsgLen;
-		    }
+		    poll_stuff->events = POLLOUT;
+		    char msg [] = "Hello from Hani's server!!";
+		    int n_data = sizeof(msg) - 1;
+		    s->n_bytes = sizeof(int) + n_data;
+		    s->data = malloc(s->n_bytes);
+
+		    memcpy(s->data, &n_data, sizeof(n_data));
+		    memcpy(s->data + 4, msg, n_data);
+		  }
+		  else
+		  {
+		    poll_stuff->events = POLLIN;
 		  }
 		}
 	      }

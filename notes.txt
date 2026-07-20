@@ -1,6 +1,7 @@
 formatting
 fix buffer jump
-vim: cib, highligh {}
+for vi  do cib, highligh {}, for ctrl m stay in same pane
 
-1. Need to centralize state transion and client must keep looping...
+1. why client second run breaks.
+2. put visual in {}
 
