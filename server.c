@@ -7,10 +7,10 @@
 #include "signal.h"
 #include "poll.h"
 
+
 #include "common.c"
 #define MAX_CONN 1024 
 
-#define Assert(condition) (condition ? 0 : (printf("Failed: %s", #condition), *(int *)0 =0))
 
 typedef struct
 {
@@ -124,13 +124,29 @@ int main()
 		{
 		  // mark handle client state
 		  State * s = all_socket.state + idx_socket;
-		  read_partial(s);
+		  do_partial_io(s);
+
 		  if(s->n_bytes_processed == s->n_bytes)
 		  {
-		    s->n_bytes = (int)s->data[0];
-		    s->n_bytes_processed = 0;
-		    free(s->data);
-		    s->data = malloc(s->n_bytes);
+		    if(s->request == MsgLen)
+		    {
+		      s->request = Msg;
+		      s->n_bytes = (int)s->data[0];
+		      s->n_bytes_processed = 0;
+		      free(s->data);
+		      s->data = malloc(s->n_bytes);
+		    }
+		    else if(s->request == Msg)
+		    {
+		      s->request = Send;
+		      char msg [] = "Hello from Hani's server!!";
+		      s->n_bytes = sizeof(msg) - 1;
+		      s->n_bytes_processed = 0;
+		      free(s->data);
+		      s->data = malloc(s->n_bytes);
+		      memcpy(s->data, msg, s->n_bytes);
+		      s->request = MsgLen;
+		    }
 		  }
 		}
 	      }

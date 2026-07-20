@@ -9,20 +9,6 @@
 
 #define N_CLIENT 1
 
-void write_all(State * s)
-{
-  while(s->n_bytes)
-  {
-    int written = write(s->fd, s->data, s->n_bytes);
-    if(written <= 0)
-    {
-      perror("terminate");
-      exit(written);
-    }
-    s->n_bytes -= written;
-  }
-}
-
 int main()
 {
   int all_sockets[N_CLIENT] = {};
@@ -81,8 +67,14 @@ int main()
 	memcpy(s.data, &n_data, sizeof(n_data));
 	memcpy(s.data + 4, data, n_data);
 
-	write_all(&s);
-	// process_payload(all_sockets[i]);
+	s.request = Send;
+	do_partial_io(&s);
+	s.request = MsgLen;
+	do_partial_io(&s);
+	s.request = Msg;
+	do_partial_io(&s);
+
+	printf("Awesomeeeee....: %s\n", s.data);
       }
     }
   }
