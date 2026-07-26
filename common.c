@@ -23,6 +23,20 @@ enum IO bla_state[] = {
 
 typedef struct
 {
+  uint8_t *start;
+  int n;
+} Str;
+
+Str create_large_string()
+{
+  Str s = {};
+  s.n  = 32 << 0;
+  s.start = malloc(s.n);
+  return s;
+}
+
+typedef struct
+{
   int n_bytes;
   int n_bytes_processed;
   int error;
@@ -48,15 +62,23 @@ void set_state_writing(State * s)
 enum RequestState try_to_transition(State * s)
 {
   enum RequestState state = None;
-  // when to free?
+  // todo when to free?
   if(s->n_bytes_processed == s->n_bytes)
   {
+    enum RequestState pre = s->request;
     if(s->request == MsgLen)
     {
       s->request = Msg;
-      s->n_bytes = (int)s->data[0];
-      s->n_bytes_processed = 0;
-      s->data = malloc(s->n_bytes);
+      s->n_bytes = *((int*)s->data);
+      if(s->n_bytes == 0)
+      {
+	set_state_writing(s);
+      }
+      else
+      {
+	s->n_bytes_processed = 0;
+	s->data = malloc(s->n_bytes);
+      }
     }
     else if(s->request == Msg)
     {
@@ -67,6 +89,7 @@ enum RequestState try_to_transition(State * s)
       set_state_reading(s);
     }
     state = s->request;
+    printf("%d -> %d\n", pre, state);
   }
   return state;
 }
@@ -105,4 +128,25 @@ void do_partial_io(State *state)
     state->n_bytes_processed += n_bytes_returned;
     printf("[%d / %d] bytes %s\n", state->n_bytes_processed, state->n_bytes, operation == Read ? "read" : "written");
   }
+}
+
+void add_data(State * s, Str str)
+{
+  int n_bytes = s->n_bytes + sizeof(int) + str.n;
+  uint8_t * new_buffer = malloc(n_bytes);
+  if(!new_buffer)
+  {
+    perror(__FILE__);
+    exit(errno);
+  }
+
+  if(s->data)
+  {
+    memcpy(new_buffer, s->data, s->n_bytes);
+  }
+
+  memcpy(new_buffer + s->n_bytes, &str.n, sizeof(int));
+  memcpy(new_buffer + s->n_bytes + 4, str.start, str.n);
+  s->data = new_buffer;
+  s->n_bytes = n_bytes;
 }

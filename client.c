@@ -7,7 +7,7 @@
 
 #include "common.c"
 
-#define N_CLIENT 100
+#define N_CLIENT 1
 
 int main()
 {
@@ -58,13 +58,10 @@ int main()
       for (i = 0; i < N_CLIENT; ++i)
       {
 	State * s = all_states + i;
-	char data [] = "hello my name is Hani";
-	int n_data = sizeof(data) - 1;
-	s->n_bytes = sizeof(int) + n_data;
-	s->data = malloc(s->n_bytes);
 
-	memcpy(s->data, &n_data, sizeof(n_data));
-	memcpy(s->data + 4, data, n_data);
+	Str large_str = create_large_string();
+	add_data(s, large_str);
+	add_data(s, large_str);
 	set_state_writing(s);
       }
 

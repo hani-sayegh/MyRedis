@@ -1,7 +1,32 @@
 formatting
 fix buffer jump
-for vi  do cib, highligh {}, for ctrl m stay in same pane
+for vi  do cib, highligh {}, for ctrl m stay in same pane, put visual in {}
 
-1. why client second run breaks.
-2. put visual in {}
+next: you can prepend total messages for pipelining, figure out how to measure latency and throughput.
 
+// sizeof give \n, strlen without it
+
+Future features:
+1. pipelining
+2. growable hashtable
+
+test cases:
+1. normal str
+2. empty str
+3. large str
+
+So "I/O bottleneck" basically means:
+
+The CPU is sitting idle because it is waiting for something outside the CPU (network, disk, database, etc.) to finish.
+
+The network waiting time is the big issue for latency.
+The number of I/O events per second is the issue for throughput.
+
+Those are related but different bottlenecks.
+
+So the same word "I/O bottleneck" can mean:
+
+slow I/O completion (waiting for network/disk)
+too many I/O operations to process (event/syscall overhead)
+
+The Redis section is mostly the second one.
