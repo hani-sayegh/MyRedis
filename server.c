@@ -8,6 +8,7 @@
 #include "poll.h"
 
 
+#include "./hashtable/hashmap.h"
 #include "common.c"
 #define MAX_CONN 1024 
 
@@ -84,7 +85,7 @@ int main()
 	  }
 	  else
 	  {
-	    Assert(all_socket.n < MAX_CONN);
+	    ASSERT(all_socket.n < MAX_CONN);
 	    int n = all_socket.n;
 	    for (int idx_socket = 0; idx_socket < n; ++idx_socket)
 	    {
@@ -126,11 +127,14 @@ int main()
 		  do_partial_io(s);
 		  if(try_to_transition(s) == Send)
 		  {
+		    write(STDOUT_FILENO, "Client: ", 8);
+		    write(STDOUT_FILENO, s->data, s->n_byte);
+		    write(STDOUT_FILENO, "\n", 1);
 		    poll_stuff->events = POLLOUT;
 		    char msg [] = "Hello from Hani's server!!";
 		    int n_data = sizeof(msg) - 1;
-		    s->n_bytes = sizeof(int) + n_data;
-		    s->data = malloc(s->n_bytes);
+		    s->n_byte = sizeof(int) + n_data;
+		    s->data = malloc(s->n_byte);
 
 		    memcpy(s->data, &n_data, sizeof(n_data));
 		    memcpy(s->data + 4, msg, n_data);

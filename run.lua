@@ -11,3 +11,8 @@ vim.cmd("enew")
 
  job_id = vim.fn.termopen(vim.o.shell)
 vim.api.nvim_chan_send(job_id, "./run_client.sh\n")
+
+-- -- debug below
+-- vim.api.nvim_chan_send(job_id, "cgdb ./generated/client.out\n")
+-- vim.wait(500)
+-- vim.api.nvim_chan_send(job_id, "b client.c:65\nr\nn\n")

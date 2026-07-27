@@ -1,3 +1,9 @@
+typedef struct
+{
+  const uint8_t * start;
+  uint32_t n;
+} Buffer;
+
 typedef struct Node Node;
 struct Node
 {

@@ -4,12 +4,6 @@
 #include "stddef.h"
 
 
-typedef struct
-{
-  const uint8_t * start;
-  uint32_t n;
-} Buffer;
-
 #include "hashmap.h"
 
 typedef struct  // string to string

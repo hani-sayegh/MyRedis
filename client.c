@@ -59,9 +59,10 @@ int main()
       {
 	State * s = all_states + i;
 
-	Str large_str = create_large_string();
-	add_data(s, large_str);
-	add_data(s, large_str);
+	add_operation(s, SET);
+	add_data(s, create_key());
+	add_data(s, create_value());
+	complete_state(s);
 	set_state_writing(s);
       }
 
