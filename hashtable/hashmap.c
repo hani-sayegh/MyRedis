@@ -1,8 +1,8 @@
 #define MAP_CAPACITY 1 << 10
 
-HMap create_hmap(FuncEqual eq)
+Map create_map(FuncEqual eq)
 {
-  HMap result = {};
+  Map result = {};
   result.eq = eq;
   result.capacity = MAP_CAPACITY;
   result.start = calloc(result.capacity, sizeof(Node *));
@@ -18,7 +18,7 @@ uint32_t hash(Buffer buffer)
   return h;
 }
 
-Node** contains(HMap *map, Node* target) 
+Node** contains(Map *map, Node* target) 
 {
   size_t pos = target->code & (map->capacity - 1);
   Node* node_current = map->start[pos];
@@ -38,7 +38,7 @@ Node** contains(HMap *map, Node* target)
   return result;
 }
 
-int delete(HMap *map, Node* node) {
+int delete(Map *map, Node* node) {
   size_t pos = node->code & (map->capacity - 1);
   Node** node_indirect = &map->start[pos];
   int deleted = 0;
@@ -61,7 +61,7 @@ int delete(HMap *map, Node* node) {
 }
 
 
-void insert(HMap *map, Node *node) {
+void insert(Map *map, Node *node) {
   Node** exists = contains(map, node);
   if(exists)
   {
@@ -75,3 +75,4 @@ void insert(HMap *map, Node *node) {
     ++map->n;
   }
 }
+

@@ -1,1 +1,1 @@
-gcc -g -O0 -Wall server.c -o generated/server.out 
+gcc -g -O0 -Wall -Wno-unused-variable server.c -o generated/server.out 

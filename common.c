@@ -1,5 +1,18 @@
 #include <stdlib.h>
 #define ASSERT(condition) (condition ? 0 : (printf("Failed: %s", #condition), *(int *)0 =0))
+#define BUFFER(str) ((Buffer){.start=(uint8_t *)(str), .n = sizeof(str) - 1})
+
+typedef struct
+{
+  uint8_t * start;
+  uint32_t n;
+} Buffer;
+
+typedef struct
+{
+  Buffer key;
+  Buffer value;
+} KeyVal;
 
 enum IO
 {
@@ -7,7 +20,7 @@ enum IO
   Write,
 };
 
-enum Operation
+enum DB_Action
 {
   SET,
   GET
@@ -28,15 +41,9 @@ enum IO bla_state[] = {
   [Send]= Write,
 };
 
-typedef struct
+Buffer create_large_string()
 {
-  uint8_t *start;
-  int n;
-} Str;
-
-Str create_large_string()
-{
-  Str s = {};
+  Buffer s = {};
   s.n  = 32 << 0;
   s.start = malloc(s.n);
   for(int i = 0; i < s.n; ++i)
@@ -46,26 +53,25 @@ Str create_large_string()
   return s;
 }
 
-
-Str create_key()
+Buffer create_key()
 {
-  Str s = {};
+  Buffer s = {};
   s.n  = 4;
   s.start = (uint8_t*)"Hani";
   return s;
 }
 
-Str create_value()
+Buffer create_value()
 {
-  Str s = {};
+  Buffer s = {};
   s.n  = 6;
   s.start = (uint8_t*)"Sayegh";
   return s;
 }
 
-Str create_string_with_delimeter()
+Buffer create_string_with_delimeter()
 {
-  Str s = {};
+  Buffer s = {};
   s.n  = 32 << 1;
   s.start = malloc(s.n);
   s.start[0] = '\0';
@@ -82,7 +88,7 @@ typedef struct
   int n_byte_processed;
   int error;
   int fd;
-  uint8_t *data;
+  uint8_t* start;
   enum State state;
 } State;
 
@@ -99,7 +105,7 @@ void set_state_reading(State * s)
   s->state = MsgLen;
   s->n_byte = 4;
   s->n_byte_processed = 0;
-  s->data = malloc(s->n_byte);
+  s->start = malloc(s->n_byte);
 }
 
 void set_state_writing(State * s)
@@ -119,9 +125,9 @@ enum State try_to_transition(State * s)
 
     if(s->state == MsgLen)
     {
-      printf("Msg len: %d\n", *((int*)s->data));
+      printf("Msg len: %d\n", *((int*)s->start));
       s->state = Msg;
-      s->n_byte = *((int*)s->data);
+      s->n_byte = *((int*)s->start);
       if(s->n_byte == 0)
       {
 	set_state_writing(s);
@@ -129,7 +135,7 @@ enum State try_to_transition(State * s)
       else
       {
 	s->n_byte_processed = 0;
-	s->data = malloc(s->n_byte);
+	s->start = malloc(s->n_byte);
       }
     }
     else if(s->state == Msg)
@@ -150,7 +156,7 @@ enum State try_to_transition(State * s)
 void do_partial_io(State *state)
 {
   enum IO operation = bla_state[state->state];
-  uint8_t * offset = state->data + state->n_byte_processed;
+  uint8_t * offset = state->start + state->n_byte_processed;
   int n_bytes_to_process = state->n_byte - state->n_byte_processed;
 
 
@@ -182,32 +188,9 @@ void do_partial_io(State *state)
   }
 }
 
-void add_operation(State* s, enum Operation o)
+void add_byte(State * s, void* data, int n_byte_add)
 {
-  ASSERT(s->n_byte == 0);
-  s->n_byte = sizeof(enum Operation);
-  s->data = malloc(s->n_byte);
-  memcpy(s->data, &o, s->n_byte);
-}
-
-void complete_state(State* s)
-{
-  int n_bytes_updated = s->n_byte + sizeof(s->n_byte);
-  uint8_t * new_buffer = malloc(n_bytes_updated);
-  if(!new_buffer)
-  {
-    perror(__FILE__);
-    exit(errno);
-  }
-  memcpy(new_buffer, &(s->n_byte), sizeof(s->n_byte));
-  memcpy(new_buffer + sizeof(s->n_byte), s->data, s->n_byte);
-  s->data = new_buffer;
-  s->n_byte = n_bytes_updated;
-}
-
-void add_data(State * s, Str str)
-{
-  int n_bytes_updated = s->n_byte + sizeof(int) + str.n;
+  int n_bytes_updated = s->n_byte + n_byte_add;
   uint8_t * new_buffer = malloc(n_bytes_updated);
   if(!new_buffer)
   {
@@ -215,13 +198,14 @@ void add_data(State * s, Str str)
     exit(errno);
   }
 
-  if(s->data)
-  {
-    memcpy(new_buffer, s->data, s->n_byte);
-  }
-
-  memcpy(new_buffer + s->n_byte, &str.n, sizeof(int));
-  memcpy(new_buffer + s->n_byte + 4, str.start, str.n);
-  s->data = new_buffer;
+  memcpy(new_buffer, s->start, s->n_byte);
+  memcpy(new_buffer + s->n_byte, data, n_byte_add);
+  s->start = new_buffer;
   s->n_byte = n_bytes_updated;
+}
+
+void add_Buffer(State* s, Buffer buffer)
+{
+  add_byte(s, &buffer.n, 4);
+  add_byte(s, buffer.start, buffer.n);
 }

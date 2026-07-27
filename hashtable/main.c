@@ -15,21 +15,6 @@ typedef struct  // string to string
   Node node;
 } StringToString;
 
-void print_map(HMap* map)
-{
-  for(int idx_slot = 0; idx_slot < map->capacity; ++idx_slot)
-  {
-    Node* head = map->start[idx_slot];
-    int idx_chain = 0;
-    while(head)
-    {
-      StringToString* e = BASE(head, StringToString, node);
-      printf("[%d][%d] [%.*s, %.*s]\n", idx_slot, idx_chain, e->key.n, e->key.start, e->value.n, e->value.start);
-      head = head->next;
-      ++idx_slot;
-    }
-  }
-}
 
 int check_equal_buffer(Buffer* b1, Buffer* b2)
 {
@@ -51,7 +36,6 @@ int check_equal(Node* n1, Node* n2)
 
 #include "hashmap.c"
 
-#define BUFFER(str) ((Buffer){.start=(const uint8_t *)(str), .n = sizeof(str) - 1})
 #define ENTRY(KEY, VAL) ((StringToString){.key = BUFFER(KEY), .value = BUFFER(VAL), .node = {.code = hash(BUFFER(KEY))}})
 
 #define N(arr) (sizeof(arr)/sizeof(arr[0]))

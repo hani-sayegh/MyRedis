@@ -58,26 +58,34 @@ int main()
       for (i = 0; i < N_CLIENT; ++i)
       {
 	State * s = all_states + i;
-
-	add_operation(s, SET);
-	add_data(s, create_key());
-	add_data(s, create_value());
-	complete_state(s);
-	set_state_writing(s);
-      }
-
-      int done = 0;
-      while(done != N_CLIENT)
-      {
-	for(int i = 0; i < N_CLIENT; ++i)
+	struct 
 	{
-	  State * s = all_states + i;
-	  do_partial_io(s);
-	  if(try_to_transition(s) == Send)
+	  enum DB_Action type;
+	  KeyVal data;
+	} all_command [] =
+	{
 	  {
-	    printf("Awesomeeeee....: %s\n", s->data);
-	    ++done;
+	    .type = SET,
+	    .data.key = BUFFER("Hani"),
+	    .data.value = BUFFER("Sayegh"),
+	  },
+	  {
+	    .type = SET,
+	    .data.key = BUFFER("Sami"),
+	    .data.value = BUFFER("Sayegh"),
 	  }
+	};
+
+	for(int i = 0; i < 1; ++i)
+	{
+	  *s = (State){};
+	  add_byte(s, &all_command[i].type, 4);
+	  add_byte(s, &all_command[i].type, 4);
+	  add_Buffer(s, all_command[i].data.key);
+	  add_Buffer(s, all_command[i].data.value);
+	  s->start[0] = s->n_byte - 4;
+	  set_state_writing(s);
+	  do_partial_io(s);
 	}
       }
     }

@@ -1,9 +1,3 @@
-typedef struct
-{
-  const uint8_t * start;
-  uint32_t n;
-} Buffer;
-
 typedef struct Node Node;
 struct Node
 {
@@ -19,6 +13,6 @@ typedef struct
   int capacity;
   Node ** start;
   FuncEqual eq;
-} HMap;
+} Map;
 
 #define BASE(Ptr, Type, Prop) ((Type*)(((uint8_t*)(Ptr)) - offsetof(Type, Prop)))

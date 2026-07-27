@@ -1,6 +1,23 @@
 next: 
-[] handle state Type
+[] handle server response
+[] Support client multi message.
+[] Support client sending bad message.
+[] Support release build where you check unsued var.
+[] Even if parse is good, must fail on extra bytes...
+[x] Pipeline stage 1: send all data in format [len][data]
+[x]  Pipeline stage 2: Parse all data in format
+if type == Set
+[type:len:data:len:data]
+if type == Get
+[type:len:data]
+[x] move Str to Buffer
+[] need to handle the case of read only string vs malloc. (perhaps make all malloc?)
 [] not a fan of you set_state_writing resets bytes processed
+[] install redis to compare against, not now, try to use your head first.
+
+Memory bugs:
+Use after free (could be freed by free, or auto freed by the stack)
+When you malloc the wrong size...like the pointer instead of what the pointer points to...
 
 Pipeline Server:
 1. Read all data for one request
@@ -9,6 +26,7 @@ Pipeline Server:
 Future features:
 1. pipelining
 2. growable hashtable
+3. curious to learn about unaligned memeory.
 
 test cases:
 1. normal str

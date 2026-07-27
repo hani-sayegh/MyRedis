@@ -8,9 +8,12 @@
 #include "poll.h"
 
 
-#include "./hashtable/hashmap.h"
 #include "common.c"
+#include "./hashtable/hashmap.h"
+#include "./hashtable/hashmap.c"
+
 #define MAX_CONN 1024 
+#define uint8_t Byte
 
 
 typedef struct
@@ -25,6 +28,46 @@ typedef struct
   State state[MAX_CONN];
   int n;
 } ArrayInt;
+
+typedef struct 
+{
+  Node node;
+  KeyVal data; 
+} DbEntry;
+
+int check_Str_equal(Buffer* a, Buffer* b)
+{
+  int result = a->n == b->n;
+  for(int i = 0; i < a->n && result; ++i)
+  {
+    if(a->start[i] != b->start[i])
+    {
+      result = 0;
+    }
+  }
+  return result;
+}
+
+int equal(Node* a, Node* b)
+{
+  return check_Str_equal(&((DbEntry*)a)->data.key, &((DbEntry*)b)->data.key);
+}
+
+void print_map(Map* map)
+{
+  for(int idx_slot = 0; idx_slot < map->capacity; ++idx_slot)
+  {
+    Node* head = map->start[idx_slot];
+    int idx_chain = 0;
+    while(head)
+    {
+      DbEntry* e = (DbEntry*)head;
+      printf("[%d][%d] [%.*s, %.*s]\n", idx_slot, idx_chain, e->data.key.n, e->data.key.start, e->data.value.n, e->data.value.start);
+      head = head->next;
+      ++idx_slot;
+    }
+  }
+}
 
 int main()
 {
@@ -73,6 +116,8 @@ int main()
 	all_socket.start[all_socket.n].events = POLLIN;
 	++all_socket.n;
 
+
+	Map db = create_map(equal);
 	while (1)
 	{
 	  printf("polling...\n");
@@ -125,19 +170,67 @@ int main()
 		  State * s = all_socket.state + idx_socket;
 		  struct pollfd* poll_stuff = all_socket.start + idx_socket;
 		  do_partial_io(s);
+
 		  if(try_to_transition(s) == Send)
 		  {
+		    struct
+		    {
+		      enum DB_Action type;
+		      DbEntry db_entry;
+		    }* command = malloc(sizeof(*command));
+
+		    int n_bytes_parsed = 0;
+		    if(s->n_byte - n_bytes_parsed < 4)
+		    {
+		      abort(); 
+		    }
+		    command->type = *(int*)(s->start + n_bytes_parsed);
+		    n_bytes_parsed += 4;
+		    if(s->n_byte - n_bytes_parsed < 4)
+		    {
+		      abort(); 
+		    }
+		    command->db_entry.data.key.n = *(int*)(s->start + n_bytes_parsed);
+		    n_bytes_parsed += 4;
+		    if(s->n_byte - n_bytes_parsed < command->db_entry.data.key.n)
+		    {
+		      abort(); 
+		    }
+		    command->db_entry.data.key.start = malloc(command->db_entry.data.key.n);
+		    memcpy(command->db_entry.data.key.start, s->start + n_bytes_parsed, command->db_entry.data.key.n);
+		    n_bytes_parsed += command->db_entry.data.key.n;
+		    if(s->n_byte - n_bytes_parsed < 4)
+		    {
+		      abort();
+		    }
+		    command->db_entry.data.value.n = *(int*)(s->start + n_bytes_parsed);
+		    n_bytes_parsed += 4;
+		    if(s->n_byte - n_bytes_parsed < command->db_entry.data.value.n)
+		    {
+		      abort(); 
+		    }
+		    command->db_entry.data.value.start = malloc(command->db_entry.data.value.n);
+		    memcpy(command->db_entry.data.value.start, s->start + n_bytes_parsed, command->db_entry.data.value.n);
+		    n_bytes_parsed += command->db_entry.data.value.n;
+
+		    if(command->type == SET)
+		    {
+		      command->db_entry.node.code = hash(command->db_entry.data.key);
+		      insert(&db, &command->db_entry.node);
+		      print_map(&db);
+		    }
+
 		    write(STDOUT_FILENO, "Client: ", 8);
-		    write(STDOUT_FILENO, s->data, s->n_byte);
+		    write(STDOUT_FILENO, s->start, s->n_byte);
 		    write(STDOUT_FILENO, "\n", 1);
 		    poll_stuff->events = POLLOUT;
 		    char msg [] = "Hello from Hani's server!!";
 		    int n_data = sizeof(msg) - 1;
 		    s->n_byte = sizeof(int) + n_data;
-		    s->data = malloc(s->n_byte);
+		    s->start = malloc(s->n_byte);
 
-		    memcpy(s->data, &n_data, sizeof(n_data));
-		    memcpy(s->data + 4, msg, n_data);
+		    memcpy(s->start, &n_data, sizeof(n_data));
+		    memcpy(s->start + 4, msg, n_data);
 		  }
 		  else
 		  {
