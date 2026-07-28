@@ -87,31 +87,29 @@ typedef struct
   int n_byte;
   int n_byte_processed;
   int error;
-  int fd;
   uint8_t* start;
   enum State state;
-} State;
+} Message;
 
-// void set_state_type(State * s)
-// {
-//   s->state = Type;
-//   s->n_byte = 4;
-//   s->n_bytes_processed = 0;
-//   s->data = malloc(s->n_byte);
-// }
+
+typedef struct
+{
+  Message msg;
+  int fd;
+} State;
 
 void set_state_reading(State * s)
 {
-  s->state = MsgLen;
-  s->n_byte = 4;
-  s->n_byte_processed = 0;
-  s->start = malloc(s->n_byte);
+  s->msg.state = MsgLen;
+  s->msg.n_byte = 4;
+  s->msg.n_byte_processed = 0;
+  s->msg.start = malloc(s->msg.n_byte);
 }
 
 void set_state_writing(State * s)
 {
-  s->state = Send;
-  s->n_byte_processed = 0;
+  s->msg.state = Send;
+  s->msg.n_byte_processed = 0;
 }
 
 // mark state machine
@@ -119,34 +117,34 @@ enum State try_to_transition(State * s)
 {
   enum State state = None;
   // todo when to free?
-  if(s->n_byte_processed == s->n_byte)
+  if(s->msg.n_byte_processed == s->msg.n_byte)
   {
-    enum State pre = s->state;
+    enum State pre = s->msg.state;
 
-    if(s->state == MsgLen)
+    if(s->msg.state == MsgLen)
     {
-      printf("Msg len: %d\n", *((int*)s->start));
-      s->state = Msg;
-      s->n_byte = *((int*)s->start);
-      if(s->n_byte == 0)
+      printf("Msg len: %d\n", *((int*)s->msg.start));
+      s->msg.state = Msg;
+      s->msg.n_byte = *((int*)s->msg.start);
+      if(s->msg.n_byte == 0)
       {
 	set_state_writing(s);
       }
       else
       {
-	s->n_byte_processed = 0;
-	s->start = malloc(s->n_byte);
+	s->msg.n_byte_processed = 0;
+	s->msg.start = malloc(s->msg.n_byte);
       }
     }
-    else if(s->state == Msg)
+    else if(s->msg.state == Msg)
     {
       set_state_writing(s);
     }
-    else if(s->state == Send)
+    else if(s->msg.state == Send)
     {
       set_state_reading(s);
     }
-    state = s->state;
+    state = s->msg.state;
     printf("%d -> %d\n", pre, state);
   }
   return state;
@@ -155,9 +153,9 @@ enum State try_to_transition(State * s)
 
 void do_partial_io(State *state)
 {
-  enum IO operation = bla_state[state->state];
-  uint8_t * offset = state->start + state->n_byte_processed;
-  int n_bytes_to_process = state->n_byte - state->n_byte_processed;
+  enum IO operation = bla_state[state->msg.state];
+  uint8_t * offset = state->msg.start + state->msg.n_byte_processed;
+  int n_bytes_to_process = state->msg.n_byte - state->msg.n_byte_processed;
 
 
   int n_bytes_returned = 0;
@@ -174,23 +172,23 @@ void do_partial_io(State *state)
   if(n_bytes_returned == 0)
   {
     printf("EOF\n");
-    state->error = 1;
+    state->msg.error = 1;
   }
   else if (n_bytes_returned == -1)
   {
     perror(__FILE__);
-    state->error = 1;
+    state->msg.error = 1;
   }
   else
   {
-    state->n_byte_processed += n_bytes_returned;
-    printf("[%d / %d] bytes %s\n", state->n_byte_processed, state->n_byte, operation == Read ? "read" : "written");
+    state->msg.n_byte_processed += n_bytes_returned;
+    printf("[%d / %d] bytes %s\n", state->msg.n_byte_processed, state->msg.n_byte, operation == Read ? "read" : "written");
   }
 }
 
-void add_byte(State * s, void* data, int n_byte_add)
+void add_byte(Message* msg, void* data, int n_byte_add)
 {
-  int n_bytes_updated = s->n_byte + n_byte_add;
+  int n_bytes_updated = msg->n_byte + n_byte_add;
   uint8_t * new_buffer = malloc(n_bytes_updated);
   if(!new_buffer)
   {
@@ -198,14 +196,14 @@ void add_byte(State * s, void* data, int n_byte_add)
     exit(errno);
   }
 
-  memcpy(new_buffer, s->start, s->n_byte);
-  memcpy(new_buffer + s->n_byte, data, n_byte_add);
-  s->start = new_buffer;
-  s->n_byte = n_bytes_updated;
+  memcpy(new_buffer, msg->start, msg->n_byte);
+  memcpy(new_buffer + msg->n_byte, data, n_byte_add);
+  msg->start = new_buffer;
+  msg->n_byte = n_bytes_updated;
 }
 
-void add_Buffer(State* s, Buffer buffer)
+void add_Buffer(Message* msg, Buffer buffer)
 {
-  add_byte(s, &buffer.n, 4);
-  add_byte(s, buffer.start, buffer.n);
+  add_byte(msg, &buffer.n, 4);
+  add_byte(msg, buffer.start, buffer.n);
 }

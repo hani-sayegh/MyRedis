@@ -158,7 +158,7 @@ int main()
 		    all_socket.start[n].events = POLLIN;
 
 		    all_socket.state[n].fd     = fd_client;
-		    all_socket.state[n].error     = 0;
+		    all_socket.state[n].msg.error     = 0;
 		    set_state_reading(&all_socket.state[n]);
 
 		    ++all_socket.n;
@@ -180,37 +180,37 @@ int main()
 		    }* command = malloc(sizeof(*command));
 
 		    int n_bytes_parsed = 0;
-		    if(s->n_byte - n_bytes_parsed < 4)
+		    if(s->msg.n_byte - n_bytes_parsed < 4)
 		    {
 		      abort(); 
 		    }
-		    command->type = *(int*)(s->start + n_bytes_parsed);
+		    command->type = *(int*)(s->msg.start + n_bytes_parsed);
 		    n_bytes_parsed += 4;
-		    if(s->n_byte - n_bytes_parsed < 4)
+		    if(s->msg.n_byte - n_bytes_parsed < 4)
 		    {
 		      abort(); 
 		    }
-		    command->db_entry.data.key.n = *(int*)(s->start + n_bytes_parsed);
+		    command->db_entry.data.key.n = *(int*)(s->msg.start + n_bytes_parsed);
 		    n_bytes_parsed += 4;
-		    if(s->n_byte - n_bytes_parsed < command->db_entry.data.key.n)
+		    if(s->msg.n_byte - n_bytes_parsed < command->db_entry.data.key.n)
 		    {
 		      abort(); 
 		    }
 		    command->db_entry.data.key.start = malloc(command->db_entry.data.key.n);
-		    memcpy(command->db_entry.data.key.start, s->start + n_bytes_parsed, command->db_entry.data.key.n);
+		    memcpy(command->db_entry.data.key.start, s->msg.start + n_bytes_parsed, command->db_entry.data.key.n);
 		    n_bytes_parsed += command->db_entry.data.key.n;
-		    if(s->n_byte - n_bytes_parsed < 4)
+		    if(s->msg.n_byte - n_bytes_parsed < 4)
 		    {
 		      abort();
 		    }
-		    command->db_entry.data.value.n = *(int*)(s->start + n_bytes_parsed);
+		    command->db_entry.data.value.n = *(int*)(s->msg.start + n_bytes_parsed);
 		    n_bytes_parsed += 4;
-		    if(s->n_byte - n_bytes_parsed < command->db_entry.data.value.n)
+		    if(s->msg.n_byte - n_bytes_parsed < command->db_entry.data.value.n)
 		    {
 		      abort(); 
 		    }
 		    command->db_entry.data.value.start = malloc(command->db_entry.data.value.n);
-		    memcpy(command->db_entry.data.value.start, s->start + n_bytes_parsed, command->db_entry.data.value.n);
+		    memcpy(command->db_entry.data.value.start, s->msg.start + n_bytes_parsed, command->db_entry.data.value.n);
 		    n_bytes_parsed += command->db_entry.data.value.n;
 
 		    if(command->type == SET)
@@ -221,16 +221,16 @@ int main()
 		    }
 
 		    write(STDOUT_FILENO, "Client: ", 8);
-		    write(STDOUT_FILENO, s->start, s->n_byte);
+		    write(STDOUT_FILENO, s->msg.start, s->msg.n_byte);
 		    write(STDOUT_FILENO, "\n", 1);
 		    poll_stuff->events = POLLOUT;
 		    char msg [] = "Hello from Hani's server!!";
 		    int n_data = sizeof(msg) - 1;
-		    s->n_byte = sizeof(int) + n_data;
-		    s->start = malloc(s->n_byte);
+		    s->msg.n_byte = sizeof(int) + n_data;
+		    s->msg.start = malloc(s->msg.n_byte);
 
-		    memcpy(s->start, &n_data, sizeof(n_data));
-		    memcpy(s->start + 4, msg, n_data);
+		    memcpy(s->msg.start, &n_data, sizeof(n_data));
+		    memcpy(s->msg.start + 4, msg, n_data);
 		  }
 		  else
 		  {
@@ -243,7 +243,7 @@ int main()
 	    // clean up
 	    for(int idx_fd = 1; idx_fd < all_socket.n; ++idx_fd)
 	    {
-	      if(all_socket.state[idx_fd].error)
+	      if(all_socket.state[idx_fd].msg.error)
 	      {
 		int fd = all_socket.state[idx_fd].fd;
 		printf("[%d] removed\n", fd);
