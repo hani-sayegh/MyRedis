@@ -8,7 +8,7 @@ vim.api.nvim_chan_send(job_id, "./run_server.sh\n")
 -- debug below
 -- vim.api.nvim_chan_send(job_id, "cgdb ./generated/server.out\n")
 -- vim.wait(500)
--- vim.api.nvim_chan_send(job_id, "b server.c:218\nr\nn\n")
+-- vim.api.nvim_chan_send(job_id, "b server.c:233\nr\nn\n")
 
 			vim.cmd("vs")
 vim.cmd("enew")

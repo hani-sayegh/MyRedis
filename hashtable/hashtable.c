@@ -38,25 +38,23 @@ Node** contains(Map *map, Node* target)
   return result;
 }
 
-int delete(Map *map, Node* node) {
+Node* delete(Map *map, Node* node) {
   size_t pos = node->code & (map->capacity - 1);
   Node** node_indirect = &map->start[pos];
-  int deleted = 0;
-
-  while(*node_indirect != 0 && !deleted)
+  Node* deleted = 0;
+  while(*node_indirect && !deleted)
   {
-    Node * next = (*node_indirect)->next;
     if(map->eq(node, *node_indirect))
     {
-      *node_indirect = next;
-      deleted = 1;
+      deleted = *node_indirect;
+      *node_indirect = (*node_indirect)->next;
+      --map->n;
     }
     else
     {
-      node_indirect = &next;
+      node_indirect = &((*node_indirect)->next);
     }
   }
-  --map->n;
   return deleted;
 }
 

@@ -8,6 +8,7 @@
 #include "common.c"
 
 #define N_CLIENT 1
+#define N_COMMAND 3
 
 int main()
 {
@@ -62,12 +63,16 @@ int main()
 	{
 	  enum DB_Action type;
 	  KeyVal data;
-	} all_command [] =
+	} all_command [N_COMMAND] =
 	{
 	  {
 	    .type = SET,
 	    .data.key = BUFFER("Hani"),
 	    .data.value = BUFFER("Sayegh"),
+	  },
+	  {
+	    .type = DELETE,
+	    .data.key = BUFFER("Hani"),
 	  },
 	  {
 	    .type = SET,
@@ -76,7 +81,7 @@ int main()
 	  }
 	};
 
-	for(int i = 0; i < 2; ++i)
+	for(int i = 0; i < N_COMMAND; ++i)
 	{
 	  Message* msg = &s->msg;
 	  *msg = (Message){};

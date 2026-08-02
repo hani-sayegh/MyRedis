@@ -9,8 +9,8 @@
 
 
 #include "common.c"
-#include "./hashtable/hashmap.h"
-#include "./hashtable/hashmap.c"
+#include "./hashtable/hashtable.h"
+#include "./hashtable/hashtable.c"
 
 #define MAX_CONN 1024 
 #define uint8_t Byte
@@ -55,17 +55,24 @@ int equal(Node* a, Node* b)
 
 void print_map(Map* map)
 {
-  for(int idx_slot = 0; idx_slot < map->capacity; ++idx_slot)
+  if(map->n)
   {
-    Node* head = map->start[idx_slot];
-    int idx_chain = 0;
-    while(head)
+    for(int idx_slot = 0; idx_slot < map->capacity; ++idx_slot)
     {
-      DbEntry* e = (DbEntry*)head;
-      printf("[%d][%d] [%.*s, %.*s]\n", idx_slot, idx_chain, e->data.key.n, e->data.key.start, e->data.value.n, e->data.value.start);
-      head = head->next;
-      ++idx_slot;
+      Node* head = map->start[idx_slot];
+      int idx_chain = 0;
+      while(head)
+      {
+	DbEntry* e = (DbEntry*)head;
+	printf("[%d][%d] [%.*s, %.*s]\n", idx_slot, idx_chain, e->data.key.n, e->data.key.start, e->data.value.n, e->data.value.start);
+	head = head->next;
+	++idx_slot;
+      }
     }
+  }
+  else
+  {
+    printf("Map Empty\n");
   }
 }
 
@@ -176,53 +183,69 @@ int main()
 		    struct
 		    {
 		      enum DB_Action type;
-		      DbEntry db_entry;
-		    }* command = malloc(sizeof(*command));
+		      DbEntry* db_entry;
+		    } command = {.db_entry = malloc(sizeof(DbEntry))};
 
 		    int n_bytes_parsed = 0;
 		    if(s->msg.n_byte - n_bytes_parsed < 4)
 		    {
 		      abort(); 
 		    }
-		    command->type = *(int*)(s->msg.start + n_bytes_parsed);
+		    command.type = *(int*)(s->msg.start + n_bytes_parsed);
 		    n_bytes_parsed += 4;
 		    if(s->msg.n_byte - n_bytes_parsed < 4)
 		    {
 		      abort(); 
 		    }
-		    command->db_entry.data.key.n = *(int*)(s->msg.start + n_bytes_parsed);
+		    command.db_entry->data.key.n = *(int*)(s->msg.start + n_bytes_parsed);
 		    n_bytes_parsed += 4;
-		    if(s->msg.n_byte - n_bytes_parsed < command->db_entry.data.key.n)
+		    if(s->msg.n_byte - n_bytes_parsed < command.db_entry->data.key.n)
 		    {
 		      abort(); 
 		    }
-		    command->db_entry.data.key.start = malloc(command->db_entry.data.key.n);
-		    memcpy(command->db_entry.data.key.start, s->msg.start + n_bytes_parsed, command->db_entry.data.key.n);
-		    n_bytes_parsed += command->db_entry.data.key.n;
+		    command.db_entry->data.key.start = malloc(command.db_entry->data.key.n);
+		    memcpy(command.db_entry->data.key.start, s->msg.start + n_bytes_parsed, command.db_entry->data.key.n);
+		    n_bytes_parsed += command.db_entry->data.key.n;
 		    if(s->msg.n_byte - n_bytes_parsed < 4)
 		    {
 		      abort();
 		    }
-		    command->db_entry.data.value.n = *(int*)(s->msg.start + n_bytes_parsed);
+		    command.db_entry->data.value.n = *(int*)(s->msg.start + n_bytes_parsed);
 		    n_bytes_parsed += 4;
-		    if(s->msg.n_byte - n_bytes_parsed < command->db_entry.data.value.n)
+		    if(s->msg.n_byte - n_bytes_parsed < command.db_entry->data.value.n)
 		    {
 		      abort(); 
 		    }
-		    command->db_entry.data.value.start = malloc(command->db_entry.data.value.n);
-		    memcpy(command->db_entry.data.value.start, s->msg.start + n_bytes_parsed, command->db_entry.data.value.n);
-		    n_bytes_parsed += command->db_entry.data.value.n;
+		    command.db_entry->data.value.start = malloc(command.db_entry->data.value.n);
+		    memcpy(command.db_entry->data.value.start, s->msg.start + n_bytes_parsed, command.db_entry->data.value.n);
+		    n_bytes_parsed += command.db_entry->data.value.n;
 
-		    if(command->type == SET)
+		    switch(command.type)
 		    {
-		      command->db_entry.node.code = hash(command->db_entry.data.key);
-		      insert(&db, &command->db_entry.node);
-		      print_map(&db);
+		      case NONE:
+			break;
+		      case SET:
+			command.db_entry->node.code = hash(command.db_entry->data.key);
+			insert(&db, &command.db_entry->node);
+			break;
+		      case GET:
+			break;
+		      case DELETE:
+			command.db_entry->node.code = hash(command.db_entry->data.key);
+			// lifetime: arbitrary
+			// owner: caller
+			Node* deleted = delete(&db, &command.db_entry->node);
+			if(deleted)
+			{
+			  free((DbEntry*)deleted);
+			}
+			break;
+		      default:
+			abort();
+			break;
 		    }
 
-		    write(STDOUT_FILENO, "Client: ", 8);
-		    write(STDOUT_FILENO, s->msg.start, s->msg.n_byte);
-		    write(STDOUT_FILENO, "\n", 1);
+		    print_map(&db);
 		    poll_stuff->events = POLLOUT;
 		    char msg [] = "Hello from Hani's server!!";
 		    int n_data = sizeof(msg) - 1;

@@ -22,8 +22,10 @@ enum IO
 
 enum DB_Action
 {
+  NONE,
   SET,
-  GET
+  GET,
+  DELETE
 };
 
 enum State
