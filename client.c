@@ -8,7 +8,6 @@
 #include "common.c"
 
 #define N_CLIENT 1
-#define N_COMMAND 3
 
 int main()
 {
@@ -62,41 +61,52 @@ int main()
 	struct 
 	{
 	  enum DB_Action type;
-	  KeyVal data;
-	} all_command [N_COMMAND] =
+	  KEYVAL;
+	} all_command [] =
 	{
+	  {
+	    .type = SET,
+	    .key = BUFFER("Hani"),
+	    .value = BUFFER("Sayegh"),
+	  },
+	  // {
+	  //   .type = DELETE,
+	  //   .data.key = BUFFER("Hani"),
+	  // },
 	  // {
 	  //   .type = SET,
-	  //   .data.key = BUFFER("Hani"),
+	  //   .data.key = BUFFER("Sami"),
 	  //   .data.value = BUFFER("Sayegh"),
 	  // },
-	  {
-	    .type = SET,
-	    .data.key = BUFFER("Hani"),
-	    .data.value = BUFFER("Sayegh"),
-	  },
-	  {
-	    .type = DELETE,
-	    .data.key = BUFFER("Hani"),
-	  },
-	  {
-	    .type = SET,
-	    .data.key = BUFFER("Sami"),
-	    .data.value = BUFFER("Sayegh"),
-	  },
 	};
 
-	for(int i = 0; i < N_COMMAND; ++i)
+	for(int i = 0; i < N(all_command); ++i)
 	{
 	  Message* msg = &s->msg;
 	  *msg = (Message){};
 	  add_byte(msg, &all_command[i].type, 4);
 	  add_byte(msg, &all_command[i].type, 4);
-	  add_Buffer(msg, all_command[i].data.key);
-	  add_Buffer(msg, all_command[i].data.value);
+	  add_Buffer(msg, all_command[i].key);
+	  add_Buffer(msg, all_command[i].value);
 	  s->msg.start[0] = s->msg.n_byte - 4;
+	  printf("%s ", all_DB_Action[all_command[i].type]);
+	  printf("%.*s ", all_command[i].key.n, all_command[i].key.start);
+	  printf("%.*s ", all_command[i].value.n, all_command[i].value.start);
+	  printf("\n");
 	  set_state_writing(s);
 	  do_partial_io(s);
+	  if(try_to_transition(s) == MsgLen)
+	  {
+	    do_partial_io(s);
+	    if(try_to_transition(s) == Msg)
+	    {
+	      do_partial_io(s);
+	      Buffer response = {};
+	      response.n = s->msg.n_byte_processed;
+	      response.start = s->msg.start;
+	      printf("%.*s\n", response.n, response.start);
+	    }
+	  }
 	}
       }
     }

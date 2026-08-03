@@ -32,7 +32,7 @@ typedef struct
 typedef struct 
 {
   Node node;
-  KeyVal data; 
+  KEYVAL;
 } DbEntry;
 
 int check_Str_equal(Buffer* a, Buffer* b)
@@ -50,7 +50,7 @@ int check_Str_equal(Buffer* a, Buffer* b)
 
 int equal(Node* a, Node* b)
 {
-  return check_Str_equal(&((DbEntry*)a)->data.key, &((DbEntry*)b)->data.key);
+  return check_Str_equal(&((DbEntry*)a)->key, &((DbEntry*)b)->key);
 }
 
 void print_map(Map* map)
@@ -64,9 +64,8 @@ void print_map(Map* map)
       while(head)
       {
 	DbEntry* e = (DbEntry*)head;
-	printf("[%d][%d] [%.*s, %.*s]\n", idx_slot, idx_chain, e->data.key.n, e->data.key.start, e->data.value.n, e->data.value.start);
+	printf("[%d][%d] [%.*s, %.*s]\n", idx_slot, idx_chain++, e->key.n, e->key.start, e->value.n, e->value.start);
 	head = head->next;
-	++idx_slot;
       }
     }
   }
@@ -140,8 +139,7 @@ int main()
 	    int n = all_socket.n;
 	    for (int idx_socket = 0; idx_socket < n; ++idx_socket)
 	    {
-	      int revents = all_socket.start[idx_socket].revents;
-	      if (revents)
+	      if (all_socket.start[idx_socket].revents)
 	      {
 		if (idx_socket == 0)
 		{
@@ -174,7 +172,6 @@ int main()
 		{
 		  // mark handle client state
 		  State * s = all_socket.state + idx_socket;
-		  struct pollfd* poll_stuff = all_socket.start + idx_socket;
 		  do_partial_io(s);
 
 		  if(try_to_transition(s) == Send)
@@ -196,41 +193,41 @@ int main()
 		    {
 		      abort(); 
 		    }
-		    command.db_entry->data.key.n = *(int*)(s->msg.start + n_bytes_parsed);
+		    command.db_entry->key.n = *(int*)(s->msg.start + n_bytes_parsed);
 		    n_bytes_parsed += 4;
-		    if(s->msg.n_byte - n_bytes_parsed < command.db_entry->data.key.n)
+		    if(s->msg.n_byte - n_bytes_parsed < command.db_entry->key.n)
 		    {
 		      abort(); 
 		    }
-		    command.db_entry->data.key.start = malloc(command.db_entry->data.key.n);
-		    memcpy(command.db_entry->data.key.start, s->msg.start + n_bytes_parsed, command.db_entry->data.key.n);
-		    n_bytes_parsed += command.db_entry->data.key.n;
+		    command.db_entry->key.start = malloc(command.db_entry->key.n);
+		    memcpy(command.db_entry->key.start, s->msg.start + n_bytes_parsed, command.db_entry->key.n);
+		    n_bytes_parsed += command.db_entry->key.n;
 		    if(s->msg.n_byte - n_bytes_parsed < 4)
 		    {
 		      abort();
 		    }
-		    command.db_entry->data.value.n = *(int*)(s->msg.start + n_bytes_parsed);
+		    command.db_entry->value.n = *(int*)(s->msg.start + n_bytes_parsed);
 		    n_bytes_parsed += 4;
-		    if(s->msg.n_byte - n_bytes_parsed < command.db_entry->data.value.n)
+		    if(s->msg.n_byte - n_bytes_parsed < command.db_entry->value.n)
 		    {
 		      abort(); 
 		    }
-		    command.db_entry->data.value.start = malloc(command.db_entry->data.value.n);
-		    memcpy(command.db_entry->data.value.start, s->msg.start + n_bytes_parsed, command.db_entry->data.value.n);
-		    n_bytes_parsed += command.db_entry->data.value.n;
+		    command.db_entry->value.start = malloc(command.db_entry->value.n);
+		    memcpy(command.db_entry->value.start, s->msg.start + n_bytes_parsed, command.db_entry->value.n);
+		    n_bytes_parsed += command.db_entry->value.n;
 
 		    switch(command.type)
 		    {
 		      case NONE:
 			break;
 		      case SET:
-			command.db_entry->node.code = hash(command.db_entry->data.key);
+			command.db_entry->node.code = hash(command.db_entry->key);
 			insert(&db, &command.db_entry->node);
 			break;
 		      case GET:
 			break;
 		      case DELETE:
-			command.db_entry->node.code = hash(command.db_entry->data.key);
+			command.db_entry->node.code = hash(command.db_entry->key);
 			// lifetime: arbitrary
 			// owner: caller
 			Node* deleted = delete(&db, &command.db_entry->node);
@@ -245,8 +242,8 @@ int main()
 		    }
 
 		    print_map(&db);
-		    poll_stuff->events = POLLOUT;
-		    char msg [] = "Hello from Hani's server!!";
+		    all_socket.start[idx_socket].events = POLLOUT;
+		    char msg [] = "OK";
 		    int n_data = sizeof(msg) - 1;
 		    s->msg.n_byte = sizeof(int) + n_data;
 		    s->msg.start = malloc(s->msg.n_byte);
@@ -256,7 +253,7 @@ int main()
 		  }
 		  else
 		  {
-		    poll_stuff->events = POLLIN;
+		    all_socket.start[idx_socket].events = POLLIN;
 		  }
 		}
 	      }

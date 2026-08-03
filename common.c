@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #define ASSERT(condition) (condition ? 0 : (printf("Failed: %s", #condition), *(int *)0 =0))
 #define BUFFER(str) ((Buffer){.start=(uint8_t *)(str), .n = sizeof(str) - 1})
+#define N(arr) (sizeof(arr)/sizeof(arr[0]))
 
 typedef struct
 {
@@ -8,11 +9,7 @@ typedef struct
   uint32_t n;
 } Buffer;
 
-typedef struct
-{
-  Buffer key;
-  Buffer value;
-} KeyVal;
+#define KEYVAL Buffer key; Buffer value
 
 enum IO
 {
@@ -27,6 +24,7 @@ enum DB_Action
   GET,
   DELETE
 };
+const char* all_DB_Action[] = {"NONE", "SET", "GET", "DELETE"};
 
 enum State
 {
@@ -37,7 +35,7 @@ enum State
   Send,
 };
 
-enum IO bla_state[] = {
+enum IO state_to_io[] = {
   [MsgLen]  = Read,
   [Msg]     = Read,
   [Send]= Write,
@@ -155,7 +153,7 @@ enum State try_to_transition(State * s)
 
 void do_partial_io(State *state)
 {
-  enum IO operation = bla_state[state->msg.state];
+  enum IO operation = state_to_io[state->msg.state];
   uint8_t * offset = state->msg.start + state->msg.n_byte_processed;
   int n_bytes_to_process = state->msg.n_byte - state->msg.n_byte_processed;
 
