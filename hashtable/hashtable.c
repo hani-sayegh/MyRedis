@@ -38,6 +38,17 @@ Node* delete(Map *map, Node* node) {
   return deleted;
 }
 
+Node* find(Map* map, Node* node)
+{
+  size_t pos = node->code & (map->capacity - 1);
+  Node* result = map->start[pos];
+  while(result && !map->eq(result, node))
+  {
+    result = result->next;
+  }
+  return result;
+}
+
 void insert(Map* map, Node* node) 
 {
   size_t pos = node->code & (map->capacity - 1);

@@ -69,23 +69,27 @@ int main()
 	    .key = BUFFER("Hani"),
 	    .value = BUFFER("Sayegh"),
 	  },
-	  // {
-	  //   .type = DELETE,
-	  //   .data.key = BUFFER("Hani"),
-	  // },
-	  // {
-	  //   .type = SET,
-	  //   .data.key = BUFFER("Sami"),
-	  //   .data.value = BUFFER("Sayegh"),
-	  // },
+	  {
+	    .type = DELETE,
+	    .key = BUFFER("Hani"),
+	  },
+	  {
+	    .type = SET,
+	    .key = BUFFER("Sami"),
+	    .value = BUFFER("Sayegh"),
+	  },
+	  {
+	    .type = GET,
+	    .key = BUFFER("Sami"),
+	  },
 	};
 
 	for(int i = 0; i < N(all_command); ++i)
 	{
 	  Message* msg = &s->msg;
 	  *msg = (Message){};
-	  add_byte(msg, &all_command[i].type, 4);
-	  add_byte(msg, &all_command[i].type, 4);
+	  add_n_byte(msg, &all_command[i].type, 4);
+	  add_n_byte(msg, &all_command[i].type, 4);
 	  add_Buffer(msg, all_command[i].key);
 	  add_Buffer(msg, all_command[i].value);
 	  s->msg.start[0] = s->msg.n_byte - 4;

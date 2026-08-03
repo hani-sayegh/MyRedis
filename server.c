@@ -13,8 +13,6 @@
 #include "./hashtable/hashtable.c"
 
 #define MAX_CONN 1024 
-#define uint8_t Byte
-
 
 typedef struct
 {
@@ -171,7 +169,7 @@ int main()
 		else
 		{
 		  // mark handle client state
-		  State * s = all_socket.state + idx_socket;
+		  State* s = all_socket.state + idx_socket;
 		  do_partial_io(s);
 
 		  if(try_to_transition(s) == Send)
@@ -202,6 +200,7 @@ int main()
 		    command.db_entry->key.start = malloc(command.db_entry->key.n);
 		    memcpy(command.db_entry->key.start, s->msg.start + n_bytes_parsed, command.db_entry->key.n);
 		    n_bytes_parsed += command.db_entry->key.n;
+		    command.db_entry->node.code = hash(command.db_entry->key);
 		    if(s->msg.n_byte - n_bytes_parsed < 4)
 		    {
 		      abort();
@@ -216,18 +215,27 @@ int main()
 		    memcpy(command.db_entry->value.start, s->msg.start + n_bytes_parsed, command.db_entry->value.n);
 		    n_bytes_parsed += command.db_entry->value.n;
 
+		    Buffer response_to_client = BUFFER("OK");
+		    // mark action
 		    switch(command.type)
 		    {
 		      case NONE:
 			break;
 		      case SET:
-			command.db_entry->node.code = hash(command.db_entry->key);
 			insert(&db, &command.db_entry->node);
 			break;
 		      case GET:
+			DbEntry* result = (DbEntry*)find(&db, &command.db_entry->node);
+			if(result)
+			{
+			  response_to_client = result->value;
+			}
+			else
+			{
+			  response_to_client = BUFFER("Not found");
+			}
 			break;
 		      case DELETE:
-			command.db_entry->node.code = hash(command.db_entry->key);
 			// lifetime: arbitrary
 			// owner: caller
 			Node* deleted = delete(&db, &command.db_entry->node);
@@ -240,16 +248,11 @@ int main()
 			abort();
 			break;
 		    }
-
 		    print_map(&db);
 		    all_socket.start[idx_socket].events = POLLOUT;
-		    char msg [] = "OK";
-		    int n_data = sizeof(msg) - 1;
-		    s->msg.n_byte = sizeof(int) + n_data;
-		    s->msg.start = malloc(s->msg.n_byte);
-
-		    memcpy(s->msg.start, &n_data, sizeof(n_data));
-		    memcpy(s->msg.start + 4, msg, n_data);
+		    s->msg.start = 0;
+		    s->msg.n_byte = 0;
+		    add_Buffer(&s->msg, response_to_client);
 		  }
 		  else
 		  {

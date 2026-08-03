@@ -119,11 +119,8 @@ enum State try_to_transition(State * s)
   // todo when to free?
   if(s->msg.n_byte_processed == s->msg.n_byte)
   {
-    enum State pre = s->msg.state;
-
     if(s->msg.state == MsgLen)
     {
-      printf("Msg len: %d\n", *((int*)s->msg.start));
       s->msg.state = Msg;
       s->msg.n_byte = *((int*)s->msg.start);
       if(s->msg.n_byte == 0)
@@ -145,7 +142,6 @@ enum State try_to_transition(State * s)
       set_state_reading(s);
     }
     state = s->msg.state;
-    printf("%d -> %d\n", pre, state);
   }
   return state;
 }
@@ -156,10 +152,7 @@ void do_partial_io(State *state)
   enum IO operation = state_to_io[state->msg.state];
   uint8_t * offset = state->msg.start + state->msg.n_byte_processed;
   int n_bytes_to_process = state->msg.n_byte - state->msg.n_byte_processed;
-
-
   int n_bytes_returned = 0;
-
   if(operation == Read)
   {
     n_bytes_returned = read(state->fd, offset, n_bytes_to_process);
@@ -168,7 +161,6 @@ void do_partial_io(State *state)
   {
     n_bytes_returned = write(state->fd, offset, n_bytes_to_process);
   }
-
   if(n_bytes_returned == 0)
   {
     printf("EOF\n");
@@ -182,11 +174,11 @@ void do_partial_io(State *state)
   else
   {
     state->msg.n_byte_processed += n_bytes_returned;
-    printf("[%d / %d] bytes %s\n", state->msg.n_byte_processed, state->msg.n_byte, operation == Read ? "read" : "written");
+    // printf("[%d / %d] bytes %s\n", state->msg.n_byte_processed, state->msg.n_byte, operation == Read ? "read" : "written");
   }
 }
 
-void add_byte(Message* msg, void* data, int n_byte_add)
+void add_n_byte(Message* msg, void* data, int n_byte_add)
 {
   int n_bytes_updated = msg->n_byte + n_byte_add;
   uint8_t * new_buffer = malloc(n_bytes_updated);
@@ -204,6 +196,6 @@ void add_byte(Message* msg, void* data, int n_byte_add)
 
 void add_Buffer(Message* msg, Buffer buffer)
 {
-  add_byte(msg, &buffer.n, 4);
-  add_byte(msg, buffer.start, buffer.n);
+  add_n_byte(msg, &buffer.n, 4);
+  add_n_byte(msg, buffer.start, buffer.n);
 }
