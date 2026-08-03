@@ -58,13 +58,18 @@ int main()
     {
       for (i = 0; i < N_CLIENT; ++i)
       {
-	State * s = all_states + i;
+	State* s = all_states + i;
 	struct 
 	{
 	  enum DB_Action type;
 	  KeyVal data;
 	} all_command [N_COMMAND] =
 	{
+	  // {
+	  //   .type = SET,
+	  //   .data.key = BUFFER("Hani"),
+	  //   .data.value = BUFFER("Sayegh"),
+	  // },
 	  {
 	    .type = SET,
 	    .data.key = BUFFER("Hani"),
@@ -78,7 +83,7 @@ int main()
 	    .type = SET,
 	    .data.key = BUFFER("Sami"),
 	    .data.value = BUFFER("Sayegh"),
-	  }
+	  },
 	};
 
 	for(int i = 0; i < N_COMMAND; ++i)
@@ -97,6 +102,7 @@ int main()
     }
   }
 
+  sleep(4);
   for (int i = 0; i < N_CLIENT; ++i)
   {
     close(all_states[i].fd);

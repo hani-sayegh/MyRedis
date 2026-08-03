@@ -1,7 +1,7 @@
 typedef struct Node Node;
 struct Node
 {
-  Node * next;
+  Node* next;
   int code;
 };
 
@@ -11,7 +11,7 @@ typedef struct
 {
   int n;
   int capacity;
-  Node ** start;
+  Node** start;
   FuncEqual eq;
 } Map;
 

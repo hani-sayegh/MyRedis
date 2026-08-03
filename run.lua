@@ -4,11 +4,16 @@
 			vim.cmd("tabnew")
 
 local job_id = vim.fn.termopen(vim.o.shell)
-vim.api.nvim_chan_send(job_id, "./run_server.sh\n")
+vim.api.nvim_chan_send(job_id, "./generated/server.out\n")
+-- vim.api.nvim_chan_send(job_id, "strace ./generated/server.out\n")
 -- debug below
 -- vim.api.nvim_chan_send(job_id, "cgdb ./generated/server.out\n")
 -- vim.wait(500)
--- vim.api.nvim_chan_send(job_id, "b server.c:233\nr\nn\n")
+-- vim.api.nvim_chan_send(job_id, "b server.c:188\n")
+-- vim.api.nvim_chan_send(job_id, "r\nn\n")
+-- vim.api.nvim_chan_send(job_id, "delete 1\n")
+-- vim.api.nvim_chan_send(job_id, "watch db->start[771]\n")
+-- vim.api.nvim_chan_send(job_id, "c\n")
 
 			vim.cmd("vs")
 vim.cmd("enew")
@@ -21,5 +26,7 @@ vim.api.nvim_chan_send(job_id, "cgdb ./generated/client.out\n")
 vim.wait(500)
 vim.api.nvim_chan_send(job_id, "b client.c:81\nr\nn\n")
 else
-vim.api.nvim_chan_send(job_id, "./run_client.sh\n")
+vim.api.nvim_chan_send(job_id, "./generated/client.out\n")
+-- vim.wait(500)
+-- vim.api.nvim_chan_send(job_id, "./run_client.sh\n")
 end

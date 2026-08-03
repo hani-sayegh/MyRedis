@@ -123,7 +123,6 @@ int main()
 	all_socket.start[all_socket.n].events = POLLIN;
 	++all_socket.n;
 
-
 	Map db = create_map(equal);
 	while (1)
 	{
@@ -184,7 +183,7 @@ int main()
 		    {
 		      enum DB_Action type;
 		      DbEntry* db_entry;
-		    } command = {.db_entry = malloc(sizeof(DbEntry))};
+		    } command = {.db_entry = calloc(1, sizeof(DbEntry))};
 
 		    int n_bytes_parsed = 0;
 		    if(s->msg.n_byte - n_bytes_parsed < 4)
