@@ -215,7 +215,8 @@ int main()
 		    memcpy(command.db_entry->value.start, s->msg.start + n_bytes_parsed, command.db_entry->value.n);
 		    n_bytes_parsed += command.db_entry->value.n;
 
-		    Buffer response_to_client = BUFFER("OK");
+		    s->msg.start = 0;
+		    s->msg.n_byte = 0;
 		    // mark action
 		    switch(command.type)
 		    {
@@ -223,16 +224,17 @@ int main()
 			break;
 		      case SET:
 			insert(&db, &command.db_entry->node);
+			add_Buffer(&s->msg, BUFFER("OK"));
 			break;
 		      case GET:
 			DbEntry* result = (DbEntry*)find(&db, &command.db_entry->node);
 			if(result)
 			{
-			  response_to_client = result->value;
+			  add_Buffer(&s->msg, result->value);
 			}
 			else
 			{
-			  response_to_client = BUFFER("Not found");
+			  add_Buffer(&s->msg, BUFFER("Not found"));
 			}
 			break;
 		      case DELETE:
@@ -244,15 +246,28 @@ int main()
 			  free((DbEntry*)deleted);
 			}
 			break;
-		      default:
-			abort();
+		      case GET_ALL_KEY:
+			// struct {Buffer* start; int n;} all_keys = {};
+			// all_keys.start = malloc(db.n * sizeof(Buffer));
+			if(db.n)
+			{
+			  for(int idx_slot = 0; idx_slot < db.capacity; ++idx_slot)
+			  {
+			    Node* head = db.start[idx_slot];
+			    int idx_chain = 0;
+			    while(head)
+			    {
+			      // all_keys.start[all_keys.n++] = ;
+
+			      add_Buffer(&s->msg, ((DbEntry*)head)->key);
+			      head = head->next;
+			    }
+			  }
+			}
 			break;
 		    }
 		    print_map(&db);
 		    all_socket.start[idx_socket].events = POLLOUT;
-		    s->msg.start = 0;
-		    s->msg.n_byte = 0;
-		    add_Buffer(&s->msg, response_to_client);
 		  }
 		  else
 		  {

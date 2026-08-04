@@ -69,18 +69,21 @@ int main()
 	    .key = BUFFER("Hani"),
 	    .value = BUFFER("Sayegh"),
 	  },
-	  {
-	    .type = DELETE,
-	    .key = BUFFER("Hani"),
-	  },
+	  // {
+	  //   .type = DELETE,
+	  //   .key = BUFFER("Hani"),
+	  // },
 	  {
 	    .type = SET,
 	    .key = BUFFER("Sami"),
 	    .value = BUFFER("Sayegh"),
 	  },
+	  // {
+	  //   .type = GET,
+	  //   .key = BUFFER("Sami"),
+	  // },
 	  {
-	    .type = GET,
-	    .key = BUFFER("Sami"),
+	    .type = GET_ALL_KEY,
 	  },
 	};
 
@@ -89,10 +92,8 @@ int main()
 	  Message* msg = &s->msg;
 	  *msg = (Message){};
 	  add_n_byte(msg, &all_command[i].type, 4);
-	  add_n_byte(msg, &all_command[i].type, 4);
 	  add_Buffer(msg, all_command[i].key);
 	  add_Buffer(msg, all_command[i].value);
-	  s->msg.start[0] = s->msg.n_byte - 4;
 	  printf("%s ", all_DB_Action[all_command[i].type]);
 	  printf("%.*s ", all_command[i].key.n, all_command[i].key.start);
 	  printf("%.*s ", all_command[i].value.n, all_command[i].value.start);
@@ -105,10 +106,7 @@ int main()
 	    if(try_to_transition(s) == Msg)
 	    {
 	      do_partial_io(s);
-	      Buffer response = {};
-	      response.n = s->msg.n_byte_processed;
-	      response.start = s->msg.start;
-	      printf("%.*s\n", response.n, response.start);
+	      printf("%.*s\n", s->msg.n_byte_processed, s->msg.start + 4);
 	    }
 	  }
 	}

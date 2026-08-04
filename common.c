@@ -22,9 +22,10 @@ enum DB_Action
   NONE,
   SET,
   GET,
+  GET_ALL_KEY,
   DELETE
 };
-const char* all_DB_Action[] = {"NONE", "SET", "GET", "DELETE"};
+const char* all_DB_Action[] = {"NONE", "SET", "GET", "GET_ALL_KEY", "DELETE"};
 
 enum State
 {
@@ -180,16 +181,22 @@ void do_partial_io(State *state)
 
 void add_n_byte(Message* msg, void* data, int n_byte_add)
 {
+  if(msg->n_byte == 0)
+  {
+    msg->n_byte = 4;
+    msg->start = malloc(4);
+  }
   int n_bytes_updated = msg->n_byte + n_byte_add;
   uint8_t * new_buffer = malloc(n_bytes_updated);
   if(!new_buffer)
   {
     perror(__FILE__);
-    exit(errno);
+    abort();
   }
-
   memcpy(new_buffer, msg->start, msg->n_byte);
   memcpy(new_buffer + msg->n_byte, data, n_byte_add);
+  int n_byte_message = n_bytes_updated - 4;
+  memcpy(new_buffer, &n_byte_message, 4);
   msg->start = new_buffer;
   msg->n_byte = n_bytes_updated;
 }
