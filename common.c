@@ -27,6 +27,13 @@ enum DB_Action
 };
 const char* all_DB_Action[] = {"NONE", "SET", "GET", "GET_ALL_KEY", "DELETE"};
 
+enum Type
+{
+  TYPE_NONE,
+  TYPE_STRING,
+  TYPE_ARRAY
+};
+
 enum State
 {
   None,
@@ -199,6 +206,11 @@ void add_n_byte(Message* msg, void* data, int n_byte_add)
   memcpy(new_buffer, &n_byte_message, 4);
   msg->start = new_buffer;
   msg->n_byte = n_bytes_updated;
+}
+
+void add_Type(Message* msg, enum Type type)
+{
+  add_n_byte(msg, &type, 1);
 }
 
 void add_Buffer(Message* msg, Buffer buffer)

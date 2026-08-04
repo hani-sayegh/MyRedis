@@ -89,7 +89,7 @@ int main()
 
 	for(int i = 0; i < N(all_command); ++i)
 	{
-	  Message* msg = &s->msg;
+	  Message* msg = msg;
 	  *msg = (Message){};
 	  add_n_byte(msg, &all_command[i].type, 4);
 	  add_Buffer(msg, all_command[i].key);

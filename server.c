@@ -215,8 +215,9 @@ int main()
 		    memcpy(command.db_entry->value.start, s->msg.start + n_bytes_parsed, command.db_entry->value.n);
 		    n_bytes_parsed += command.db_entry->value.n;
 
-		    s->msg.start = 0;
-		    s->msg.n_byte = 0;
+		    Message* msg = &s->msg;
+		    msg->start = 0;
+		    msg->n_byte = 0;
 		    // mark action
 		    switch(command.type)
 		    {
@@ -224,17 +225,19 @@ int main()
 			break;
 		      case SET:
 			insert(&db, &command.db_entry->node);
-			add_Buffer(&s->msg, BUFFER("OK"));
+			add_Type(msg, TYPE_STRING);
+			add_Buffer(msg, BUFFER("OK"));
 			break;
 		      case GET:
 			DbEntry* result = (DbEntry*)find(&db, &command.db_entry->node);
+			add_Type(msg, TYPE_STRING);
 			if(result)
 			{
-			  add_Buffer(&s->msg, result->value);
+			  add_Buffer(msg, result->value);
 			}
 			else
 			{
-			  add_Buffer(&s->msg, BUFFER("Not found"));
+			  add_Buffer(msg, BUFFER("Not found"));
 			}
 			break;
 		      case DELETE:
@@ -247,8 +250,7 @@ int main()
 			}
 			break;
 		      case GET_ALL_KEY:
-			// struct {Buffer* start; int n;} all_keys = {};
-			// all_keys.start = malloc(db.n * sizeof(Buffer));
+			add_Type(msg, TYPE_ARRAY);
 			if(db.n)
 			{
 			  for(int idx_slot = 0; idx_slot < db.capacity; ++idx_slot)
@@ -257,9 +259,7 @@ int main()
 			    int idx_chain = 0;
 			    while(head)
 			    {
-			      // all_keys.start[all_keys.n++] = ;
-
-			      add_Buffer(&s->msg, ((DbEntry*)head)->key);
+			      add_Buffer(msg, ((DbEntry*)head)->key);
 			      head = head->next;
 			    }
 			  }
