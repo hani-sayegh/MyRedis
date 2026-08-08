@@ -6,7 +6,7 @@
 typedef struct
 {
   uint8_t * start;
-  uint32_t n;
+  int n;
 } Buffer;
 
 #define KEYVAL Buffer key; Buffer value
@@ -96,6 +96,7 @@ typedef struct
   int n_byte_processed;
   int error;
   uint8_t* start;
+  int n_parsed;
   enum State state;
 } Message;
 
@@ -208,9 +209,34 @@ void add_n_byte(Message* msg, void* data, int n_byte_add)
   msg->n_byte = n_bytes_updated;
 }
 
+void parse_Type(enum Type* type, Message* msg)
+{
+  memcpy(type, msg->start + msg->n_parsed, sizeof(Type));
+  msg->n_parsed += sizeof(Type);
+}
+
+void parse_Len(int* len, Message* msg)
+{
+  memcpy(len, msg->start + msg->n_parsed, sizeof(int));
+  msg->n_parsed += sizeof(int);
+}
+
+void parse_Buffer(Buffer* buffer, Message* msg)
+{
+  parse_Len(&buffer->n, msg);
+  buffer->start = malloc(buffer->n);
+  memcpy(buffer->start, msg->start + msg->n_parsed, buffer->n);
+  msg->n_parsed += sizeof(buffer->n);
+}
+
+void add_Len(Message* msg, int n)
+{
+  add_n_byte(msg, &n, sizeof(int));
+}
+
 void add_Type(Message* msg, enum Type type)
 {
-  add_n_byte(msg, &type, 1);
+  add_n_byte(msg, &type, sizeof(Type));
 }
 
 void add_Buffer(Message* msg, Buffer buffer)

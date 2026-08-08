@@ -89,7 +89,7 @@ int main()
 
 	for(int i = 0; i < N(all_command); ++i)
 	{
-	  Message* msg = msg;
+	  Message* msg = &s->msg;
 	  *msg = (Message){};
 	  add_n_byte(msg, &all_command[i].type, 4);
 	  add_Buffer(msg, all_command[i].key);
@@ -100,13 +100,36 @@ int main()
 	  printf("\n");
 	  set_state_writing(s);
 	  do_partial_io(s);
+
 	  if(try_to_transition(s) == MsgLen)
 	  {
 	    do_partial_io(s);
 	    if(try_to_transition(s) == Msg)
 	    {
 	      do_partial_io(s);
-	      printf("%.*s\n", s->msg.n_byte_processed, s->msg.start + 4);
+	      enum Type type;
+	      parse_Type(&type, msg);
+	      switch(type)
+	      {
+		case TYPE_STRING:
+		  int n_msg;
+		  memcpy(&n_msg, s->msg.start + sizeof(Type), sizeof(int));
+		  printf("%.*s\n", n_msg, s->msg.start + sizeof(int) + sizeof(Type));
+		  break;
+		case TYPE_ARRAY:
+		  int n_array;
+		  parse_Len(&n_array, msg);
+		  for(int i = 0; i < n_array; ++i)
+		  {
+		    Buffer key;
+		    parse_Buffer(&key, msg);
+		    printf("Buffer key: %.*s\n", key.n, key.start);
+		  }
+		  break;
+		case TYPE_NONE:
+		  printf("Type of response was not set.\n");
+		  break;
+	      }
 	    }
 	  }
 	}

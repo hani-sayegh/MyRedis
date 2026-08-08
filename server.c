@@ -170,6 +170,7 @@ int main()
 		{
 		  // mark handle client state
 		  State* s = all_socket.state + idx_socket;
+		  // depending on state this will either read or write
 		  do_partial_io(s);
 
 		  if(try_to_transition(s) == Send)
@@ -251,6 +252,7 @@ int main()
 			break;
 		      case GET_ALL_KEY:
 			add_Type(msg, TYPE_ARRAY);
+			add_Len(msg, db.n);
 			if(db.n)
 			{
 			  for(int idx_slot = 0; idx_slot < db.capacity; ++idx_slot)
